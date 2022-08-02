@@ -31,14 +31,11 @@ TOKEN = os.environ.get("API_KEY")
 
 
 def _get_headers():
-    return {
-        "Authorization": "{}".format(TOKEN),
-        "Content-Type": "application/json",
-    }
+    return {"Authorization": f"{TOKEN}", "Content-Type": "application/json"}
 
 
 def test_auth():
-    url = "{}/{}/test".format(API_URL, TEST_ORG)
+    url = f"{API_URL}/{TEST_ORG}/test"
     response = requests.get(url, headers=_get_headers())
     assert response.status_code == 200
 
@@ -69,18 +66,20 @@ def _get_services():
 
 @retry((requests.exceptions.ConnectionError), delay=1, backoff=2, tries=8)
 def send_request(url):
-    if "/order" in url:
-        res = requests.post(url, data='{"donuts":[{"flavor":"cinnamon","quantity":1}]}')
-    else:
-        res = requests.get(url)
-    return res
+    return (
+        requests.post(
+            url, data='{"donuts":[{"flavor":"cinnamon","quantity":1}]}'
+        )
+        if "/order" in url
+        else requests.get(url)
+    )
 
 
 def create_trace():
     span_id = None
     with tracer.start_as_current_span("integration_test_requests") as span:
         for url in _get_destinations():
-            with tracer.start_as_current_span("send_request_to {}".format(url)) as s:
+            with tracer.start_as_current_span(f"send_request_to {url}") as s:
                 try:
                     res = send_request(url)
                     print(f"Request to {url}, got {len(res.content)} bytes")
@@ -102,8 +101,8 @@ def test_traces():
     # give time for services to report traces
     time.sleep(30)
 
-    url = "{}/{}/projects/{}/snapshots".format(API_URL, TEST_ORG, PROJECT)
-    querystring = 'service IN ("{}")'.format(INTEGRATION_TEST_APP)
+    url = f"{API_URL}/{TEST_ORG}/projects/{PROJECT}/snapshots"
+    querystring = f'service IN ("{INTEGRATION_TEST_APP}")'
     payload = {"data": {"attributes": {"query": querystring}}}
 
     # create a snapshot to make the trace we generated available
@@ -112,7 +111,7 @@ def test_traces():
 
     time.sleep(60)
 
-    url = "{}/{}/projects/{}/stored-traces".format(API_URL, TEST_ORG, PROJECT)
+    url = f"{API_URL}/{TEST_ORG}/projects/{PROJECT}/stored-traces"
     querystring = {"span-id": format(span_id, "x")}
 
     # search the snapshot for our trace
@@ -148,5 +147,6 @@ def test_traces():
     # assert number of reporters are the the same as expected
     assert (
         len(reported_services) == expected_services_count
-    ), "Services not found: {}".format(services)
+    ), f"Services not found: {services}"
+
     assert services == []

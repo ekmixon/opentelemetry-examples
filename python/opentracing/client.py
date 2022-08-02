@@ -21,17 +21,15 @@ def send_requests(url):
         client_scope_shim.span.set_baggage_item("key_client", "value_client")
 
         print(
-            "client shim key_client: {}".format(
-                client_scope_shim.span.get_baggage_item("key_client")
-            )
+            f'client shim key_client: {client_scope_shim.span.get_baggage_item("key_client")}'
         )
+
 
         try:
             res = get(url)
             print(f"Request to {url}, got {len(res.content)} bytes")
         except Exception as e:
             print(f"Request to {url} failed {e}")
-            pass
 
 
 if __name__ == "__main__":

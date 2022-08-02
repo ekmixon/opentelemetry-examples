@@ -21,11 +21,12 @@ with open(config_path) as config_file:
     config = yaml.load(config_file, Loader=yaml.FullLoader)
 
 for service, data in config.get("services", {}).items():
-    environment = data.get("environment")
-    if environment:
-        for var in environment:
-            if var.startswith("DESTINATION_URL"):
-                endpoints.append(var.split("=")[-1])
+    if environment := data.get("environment"):
+        endpoints.extend(
+            var.split("=")[-1]
+            for var in environment
+            if var.startswith("DESTINATION_URL")
+        )
 
     if service.endswith("server"):
         servers.append(service)
